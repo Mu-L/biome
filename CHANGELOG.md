@@ -19,9 +19,7 @@ Read our [guidelines for writing a good changelog entry](https://github.com/biom
 ### Linter
 #### Enhancements
 
-- [noFallthroughSwitchClause](https://biomejs.dev/linter/rules/no-fallthrough-switch-clause/) reports most of invalid codes.
-
-  The rule now relies on control flow analysis and thus reports more complex case fallthrough.
+- [noFallthroughSwitchClause](https://biomejs.dev/linter/rules/no-fallthrough-switch-clause/) now relies on control flow analysis to report most of switch clause fallthrough. Contributed by [@Conaclos](https://github.com/Conaclos)
 
 ### Parser
 ### VSCode
@@ -32,7 +30,7 @@ Read our [guidelines for writing a good changelog entry](https://github.com/biom
 
 #### Bug fixes
 
-- Fixed a case where an empty JSON file would cause the LSP server to crash.
+- Fixed a case where an empty JSON file would cause the LSP server to crash. Contributed by [@ematipico](https://github.com/ematipico)
 
 ### Linter
 
@@ -52,13 +50,15 @@ Read our [guidelines for writing a good changelog entry](https://github.com/biom
   export * as MY_NAMESPACE from "./lib.js";
   ```
 
+  Contributed by [@Conaclos](https://github.com/Conaclos)
+
 ## 1.1.1 (2023-09-07)
 
 ### Analyzer
 
 #### Bug fixes
 
-- The diagnostic for `// rome-ignore` suppression comment should not be a warning. A warning could block the CI, marking a gradual migration difficult. The code action that changes `// rome-ignore` to `// biome-ignore` is disabled as consequence.
+- The diagnostic for `// rome-ignore` suppression comment should not be a warning. A warning could block the CI, marking a gradual migration difficult. The code action that changes `// rome-ignore` to `// biome-ignore` is disabled as consequence. Contributed by [@ematipico](https://github.com/ematipico)
 
 ## 1.1.0 (2023-09-06)
 

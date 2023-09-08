@@ -1,0 +1,11 @@
+# Configure auto-generated GitHub Release Notes
+changelog:
+  exclude:
+    labels:
+      # Exclude PRs that should be documented in `CHANGELOG.md`
+      - A-Changelog
+      - S-Needs-changelog-update
+  categories:
+    - title: Other changes
+      labels:
+        - '*'

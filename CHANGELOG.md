@@ -26,6 +26,16 @@ Read our [guidelines for writing a good changelog entry](https://github.com/biom
 #### Bug fixes
 
 - Fix [#182](https://github.com/biomejs/biome/issues/182), making [useLiteralKeys](https://biomejs.dev/linter/rules/use-literal-keys/) retains optional chaining.
+- Fix [#137](https://github.com/biomejs/biome/issues/137), fix [noRedeclare](https://biomejs.dev/linter/rules/no-redeclare/) false positive case with TypeScript module declaration:
+  ```typescript
+  declare module '*.gif' {
+      const src: string;
+  }
+
+  declare module '*.bmp' {
+      const src: string;
+  }
+  ```
 
 ### Parser
 ### VSCode

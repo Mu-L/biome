@@ -37,7 +37,7 @@ pub(crate) fn parse_value_at_rule(p: &mut CssParser) -> ParsedSyntax {
         return Absent;
     }
 
-    if !p.options().css_modules {
+    if p.options().is_css_modules_disabled() {
         // @value at-rule is not a standard CSS feature.
         // Provide a hint on how to enable parsing of @value at-rules.
         p.error(value_at_rule_not_allowed(p, p.cur_range()));
@@ -255,9 +255,11 @@ fn parse_value_at_rule_generic_property(p: &mut CssParser) -> ParsedSyntax {
         let m = p.start();
 
         // Skip all tokens until the end of the property value or the next property.
+        // EOF indicates the end of the file.
         // `;` indicates the end of the list.
         // `,` is the separator before the next property.
-        while !(ValueAtRulePropertyList.is_at_list_end(p)
+        while !(p.at(EOF)
+            || ValueAtRulePropertyList.is_at_list_end(p)
             || p.at(T![,]) && is_nth_at_value_at_rule_generic_property(p, 1))
         {
             p.bump_any();

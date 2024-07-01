@@ -2,7 +2,7 @@ use crate::comments::{FormatJsonLeadingComment, JsonComments};
 use crate::JsonCommentStyle;
 use biome_deserialize_macros::{Deserializable, Merge};
 use biome_formatter::separated::TrailingSeparator;
-use biome_formatter::{prelude::*, AttributePosition, IndentWidth};
+use biome_formatter::{prelude::*, AttributePosition, BracketSpacing, IndentWidth};
 use biome_formatter::{
     CstFormatContext, FormatContext, FormatOptions, IndentStyle, LineEnding, LineWidth,
     TransformSourceMap,
@@ -173,20 +173,24 @@ impl FormatOptions for JsonFormatOptions {
         self.indent_width
     }
 
-    fn line_ending(&self) -> LineEnding {
-        self.line_ending
-    }
-
     fn line_width(&self) -> LineWidth {
         self.line_width
     }
 
-    fn as_print_options(&self) -> PrinterOptions {
-        PrinterOptions::from(self)
+    fn line_ending(&self) -> LineEnding {
+        self.line_ending
     }
 
     fn attribute_position(&self) -> AttributePosition {
         self.attribute_position
+    }
+
+    fn bracket_spacing(&self) -> BracketSpacing {
+        BracketSpacing::default()
+    }
+
+    fn as_print_options(&self) -> PrinterOptions {
+        PrinterOptions::from(self)
     }
 }
 
@@ -195,7 +199,7 @@ impl fmt::Display for JsonFormatOptions {
         writeln!(f, "Indent style: {}", self.indent_style)?;
         writeln!(f, "Indent width: {}", self.indent_width.value())?;
         writeln!(f, "Line ending: {}", self.line_ending)?;
-        writeln!(f, "Line width: {}", self.line_width.get())?;
+        writeln!(f, "Line width: {}", self.line_width.value())?;
         writeln!(f, "Trailing commas: {}", self.trailing_commas)
     }
 }

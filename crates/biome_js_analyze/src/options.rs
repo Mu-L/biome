@@ -44,7 +44,7 @@ pub type NoConstEnum =
     <lint::suspicious::no_const_enum::NoConstEnum as biome_analyze::Rule>::Options;
 pub type NoConstantCondition =
     <lint::correctness::no_constant_condition::NoConstantCondition as biome_analyze::Rule>::Options;
-pub type NoConstantMathMinMaxClamp = < lint :: nursery :: no_constant_math_min_max_clamp :: NoConstantMathMinMaxClamp as biome_analyze :: Rule > :: Options ;
+pub type NoConstantMathMinMaxClamp = < lint :: correctness :: no_constant_math_min_max_clamp :: NoConstantMathMinMaxClamp as biome_analyze :: Rule > :: Options ;
 pub type NoConstructorReturn =
     <lint::correctness::no_constructor_return::NoConstructorReturn as biome_analyze::Rule>::Options;
 pub type NoControlCharactersInRegex = < lint :: suspicious :: no_control_characters_in_regex :: NoControlCharactersInRegex as biome_analyze :: Rule > :: Options ;
@@ -77,12 +77,14 @@ pub type NoEmptyInterface =
 pub type NoEmptyPattern =
     <lint::correctness::no_empty_pattern::NoEmptyPattern as biome_analyze::Rule>::Options;
 pub type NoEmptyTypeParameters = < lint :: complexity :: no_empty_type_parameters :: NoEmptyTypeParameters as biome_analyze :: Rule > :: Options ;
-pub type NoEvolvingAny =
-    <lint::nursery::no_evolving_any::NoEvolvingAny as biome_analyze::Rule>::Options;
+pub type NoEvolvingTypes =
+    <lint::nursery::no_evolving_types::NoEvolvingTypes as biome_analyze::Rule>::Options;
 pub type NoExcessiveCognitiveComplexity = < lint :: complexity :: no_excessive_cognitive_complexity :: NoExcessiveCognitiveComplexity as biome_analyze :: Rule > :: Options ;
 pub type NoExcessiveNestedTestSuites = < lint :: complexity :: no_excessive_nested_test_suites :: NoExcessiveNestedTestSuites as biome_analyze :: Rule > :: Options ;
 pub type NoExplicitAny =
     <lint::suspicious::no_explicit_any::NoExplicitAny as biome_analyze::Rule>::Options;
+pub type NoExportedImports =
+    <lint::nursery::no_exported_imports::NoExportedImports as biome_analyze::Rule>::Options;
 pub type NoExportsInTest =
     <lint::suspicious::no_exports_in_test::NoExportsInTest as biome_analyze::Rule>::Options;
 pub type NoExtraBooleanCast =
@@ -90,7 +92,7 @@ pub type NoExtraBooleanCast =
 pub type NoExtraNonNullAssertion = < lint :: suspicious :: no_extra_non_null_assertion :: NoExtraNonNullAssertion as biome_analyze :: Rule > :: Options ;
 pub type NoFallthroughSwitchClause = < lint :: suspicious :: no_fallthrough_switch_clause :: NoFallthroughSwitchClause as biome_analyze :: Rule > :: Options ;
 pub type NoFlatMapIdentity =
-    <lint::nursery::no_flat_map_identity::NoFlatMapIdentity as biome_analyze::Rule>::Options;
+    <lint::correctness::no_flat_map_identity::NoFlatMapIdentity as biome_analyze::Rule>::Options;
 pub type NoFocusedTests =
     <lint::suspicious::no_focused_tests::NoFocusedTests as biome_analyze::Rule>::Options;
 pub type NoForEach = <lint::complexity::no_for_each::NoForEach as biome_analyze::Rule>::Options;
@@ -122,6 +124,7 @@ pub type NoInvalidConstructorSuper = < lint :: correctness :: no_invalid_constru
 pub type NoInvalidNewBuiltin = < lint :: correctness :: no_invalid_new_builtin :: NoInvalidNewBuiltin as biome_analyze :: Rule > :: Options ;
 pub type NoInvalidUseBeforeDeclaration = < lint :: correctness :: no_invalid_use_before_declaration :: NoInvalidUseBeforeDeclaration as biome_analyze :: Rule > :: Options ;
 pub type NoLabelVar = <lint::suspicious::no_label_var::NoLabelVar as biome_analyze::Rule>::Options;
+pub type NoLabelWithoutControl = < lint :: nursery :: no_label_without_control :: NoLabelWithoutControl as biome_analyze :: Rule > :: Options ;
 pub type NoMisleadingCharacterClass = < lint :: suspicious :: no_misleading_character_class :: NoMisleadingCharacterClass as biome_analyze :: Rule > :: Options ;
 pub type NoMisleadingInstantiator = < lint :: suspicious :: no_misleading_instantiator :: NoMisleadingInstantiator as biome_analyze :: Rule > :: Options ;
 pub type NoMisplacedAssertion =
@@ -136,7 +139,7 @@ pub type NoNegationElse =
 pub type NoNewSymbol =
     <lint::correctness::no_new_symbol::NoNewSymbol as biome_analyze::Rule>::Options;
 pub type NoNodejsModules =
-    <lint::nursery::no_nodejs_modules::NoNodejsModules as biome_analyze::Rule>::Options;
+    <lint::correctness::no_nodejs_modules::NoNodejsModules as biome_analyze::Rule>::Options;
 pub type NoNonNullAssertion =
     <lint::style::no_non_null_assertion::NoNonNullAssertion as biome_analyze::Rule>::Options;
 pub type NoNoninteractiveElementToInteractiveRole = < lint :: a11y :: no_noninteractive_element_to_interactive_role :: NoNoninteractiveElementToInteractiveRole as biome_analyze :: Rule > :: Options ;
@@ -184,6 +187,7 @@ pub type NoSparseArray =
 pub type NoStaticOnlyClass =
     <lint::complexity::no_static_only_class::NoStaticOnlyClass as biome_analyze::Rule>::Options;
 pub type NoStringCaseMismatch = < lint :: correctness :: no_string_case_mismatch :: NoStringCaseMismatch as biome_analyze :: Rule > :: Options ;
+pub type NoSubstr = <lint::nursery::no_substr::NoSubstr as biome_analyze::Rule>::Options;
 pub type NoSuspiciousSemicolonInJsx = < lint :: suspicious :: no_suspicious_semicolon_in_jsx :: NoSuspiciousSemicolonInJsx as biome_analyze :: Rule > :: Options ;
 pub type NoSvgWithoutTitle =
     <lint::a11y::no_svg_without_title::NoSvgWithoutTitle as biome_analyze::Rule>::Options;
@@ -205,6 +209,7 @@ pub type NoUnsafeFinally =
 pub type NoUnsafeNegation =
     <lint::suspicious::no_unsafe_negation::NoUnsafeNegation as biome_analyze::Rule>::Options;
 pub type NoUnsafeOptionalChaining = < lint :: correctness :: no_unsafe_optional_chaining :: NoUnsafeOptionalChaining as biome_analyze :: Rule > :: Options ;
+pub type NoUnusedFunctionParameters = < lint :: nursery :: no_unused_function_parameters :: NoUnusedFunctionParameters as biome_analyze :: Rule > :: Options ;
 pub type NoUnusedImports =
     <lint::correctness::no_unused_imports::NoUnusedImports as biome_analyze::Rule>::Options;
 pub type NoUnusedLabels =
@@ -251,7 +256,7 @@ pub type UseAriaActivedescendantWithTabindex = < lint :: a11y :: use_aria_active
 pub type UseAriaPropsForRole =
     <lint::a11y::use_aria_props_for_role::UseAriaPropsForRole as biome_analyze::Rule>::Options;
 pub type UseArrayLiterals =
-    <lint::nursery::use_array_literals::UseArrayLiterals as biome_analyze::Rule>::Options;
+    <lint::correctness::use_array_literals::UseArrayLiterals as biome_analyze::Rule>::Options;
 pub type UseArrowFunction =
     <lint::complexity::use_arrow_function::UseArrowFunction as biome_analyze::Rule>::Options;
 pub type UseAsConstAssertion =
@@ -359,6 +364,8 @@ pub type UseValidAriaRole =
     <lint::a11y::use_valid_aria_role::UseValidAriaRole as biome_analyze::Rule>::Options;
 pub type UseValidAriaValues =
     <lint::a11y::use_valid_aria_values::UseValidAriaValues as biome_analyze::Rule>::Options;
+pub type UseValidAutocomplete =
+    <lint::nursery::use_valid_autocomplete::UseValidAutocomplete as biome_analyze::Rule>::Options;
 pub type UseValidForDirection = < lint :: correctness :: use_valid_for_direction :: UseValidForDirection as biome_analyze :: Rule > :: Options ;
 pub type UseValidLang = <lint::a11y::use_valid_lang::UseValidLang as biome_analyze::Rule>::Options;
 pub type UseValidTypeof =

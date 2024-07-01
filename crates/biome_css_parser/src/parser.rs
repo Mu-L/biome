@@ -43,6 +43,11 @@ impl CssParserOptions {
         self.css_modules = true;
         self
     }
+
+    /// Checks if parsing of CSS Modules features is disabled.
+    pub fn is_css_modules_disabled(&self) -> bool {
+        !self.css_modules
+    }
 }
 
 impl<'source> CssParser<'source> {
@@ -61,7 +66,6 @@ impl<'source> CssParser<'source> {
 
     /// Re-lexes the current token in the specified context. Returns the kind
     /// of the re-lexed token (can be the same as before if the context doesn't make a difference for the current token)
-    #[allow(dead_code)] //TODO remote this once we actually don't use it
     pub fn re_lex(&mut self, context: CssReLexContext) -> CssSyntaxKind {
         self.source_mut().re_lex(context)
     }

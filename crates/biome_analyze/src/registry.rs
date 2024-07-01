@@ -50,9 +50,7 @@ pub trait RegistryVisitor<L: Language> {
     /// Record the rule `R` to this visitor
     fn record_rule<R>(&mut self)
     where
-        R: Rule + 'static,
-        R::Query: Queryable<Language = L>,
-        <R::Query as Queryable>::Output: Clone;
+        R: Rule<Query: Queryable<Language = L, Output: Clone>> + 'static;
 }
 
 /// Stores metadata information for all the rules in the registry, sorted
@@ -85,9 +83,7 @@ impl MetadataRegistry {
 impl<L: Language> RegistryVisitor<L> for MetadataRegistry {
     fn record_rule<R>(&mut self)
     where
-        R: Rule + 'static,
-        R::Query: Queryable<Language = L>,
-        <R::Query as Queryable>::Output: Clone,
+        R: Rule<Query: Queryable<Language = L, Output: Clone>> + 'static,
     {
         self.insert_rule(<R::Group as RuleGroup>::NAME, R::METADATA.name);
     }
@@ -165,10 +161,7 @@ impl<L: Language + Default + 'static> RegistryVisitor<L> for RuleRegistryBuilder
     /// Add the rule `R` to the list of rules stores in this registry instance
     fn record_rule<R>(&mut self)
     where
-        R: Rule + 'static,
-        <R as Rule>::Options: Default,
-        R::Query: Queryable<Language = L>,
-        <R::Query as Queryable>::Output: Clone,
+        R: Rule<Options: Default, Query: Queryable<Language = L, Output: Clone>> + 'static,
     {
         if !self.filter.match_rule::<R>() {
             return;
@@ -384,10 +377,7 @@ type RuleExecutor<L> = fn(&mut MatchQueryParams<L>, &mut RuleState<L>) -> Result
 impl<L: Language + Default> RegistryRule<L> {
     fn new<R>(state_index: usize) -> Self
     where
-        R: Rule + 'static,
-        <R as Rule>::Options: Default,
-        R::Query: Queryable<Language = L> + 'static,
-        <R::Query as Queryable>::Output: Clone,
+        R: Rule<Options: Default, Query: Queryable<Language = L, Output: Clone>> + 'static,
     {
         /// Generic implementation of RuleExecutor for any rule type R
         fn run<R>(
@@ -395,10 +385,7 @@ impl<L: Language + Default> RegistryRule<L> {
             state: &mut RuleState<RuleLanguage<R>>,
         ) -> Result<(), Error>
         where
-            R: Rule + 'static,
-            R::Query: 'static,
-            <R::Query as Queryable>::Output: Clone,
-            <R as Rule>::Options: Default,
+            R: Rule<Options: Default, Query: Queryable<Output: Clone>> + 'static,
         {
             if let Some(node) = params.query.downcast_ref::<SyntaxNode<RuleLanguage<R>>>() {
                 if state.suppressions.inner.contains(node) {
@@ -434,6 +421,7 @@ impl<L: Language + Default> RegistryRule<L> {
 
                 R::suppressed_nodes(&ctx, &result, &mut state.suppressions);
 
+                let instances = R::instances_for_signal(&result);
                 let signal = Box::new(RuleSignal::<R>::new(
                     params.root,
                     query_result.clone(),
@@ -446,6 +434,7 @@ impl<L: Language + Default> RegistryRule<L> {
                 params.signal_queue.push(SignalEntry {
                     signal,
                     rule: RuleKey::rule::<R>(),
+                    instances,
                     text_range,
                 });
             }

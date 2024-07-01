@@ -43,6 +43,7 @@ dashmap                  = { workspace = true }
 hdrhistogram             = { version = "7.5.4", default-features = false }
 indexmap                 = { workspace = true }
 lazy_static              = { workspace = true }
+quick-junit              = "0.4.0"
 rayon                    = { workspace = true }
 regex                    = { workspace = true }
 rustc-hash               = { workspace = true }
@@ -53,14 +54,14 @@ tokio                    = { workspace = true, features = ["io-std", "io-util", 
 tracing                  = { workspace = true }
 tracing-appender         = "0.2.3"
 tracing-subscriber       = { workspace = true, features = ["env-filter", "json"] }
-tracing-tree             = "0.3.0"
+tracing-tree             = "0.3.1"
 
 [target.'cfg(unix)'.dependencies]
 libc  = "0.2.154"
 tokio = { workspace = true, features = ["process"] }
 
 [target.'cfg(windows)'.dependencies]
-mimalloc = "0.1.42"
+mimalloc = "0.1.43"
 
 [target.'cfg(all(target_family="unix", not(all(target_arch = "aarch64", target_env = "musl"))))'.dependencies]
 tikv-jemallocator = "0.5.1"

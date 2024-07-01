@@ -2,9 +2,12 @@ mod js_target_language;
 
 pub use js_target_language::JsTargetLanguage;
 
+use crate::grit_js_parser::GritJsParser;
 use crate::grit_target_node::{GritTargetNode, GritTargetSyntaxKind};
+use crate::grit_tree::GritTargetTree;
 use biome_rowan::SyntaxKind;
-use grit_util::Language;
+use grit_util::{Ast, CodeRange, EffectRange, Language, Parser, SnippetTree};
+use std::borrow::Cow;
 
 /// Generates the `GritTargetLanguage` enum.
 ///
@@ -13,7 +16,7 @@ use grit_util::Language;
 /// implement the slightly more convenient [`GritTargetLanguageImpl`] for
 /// creating language-specific implementations.
 macro_rules! generate_target_language {
-    ($($language:ident),+) => {
+    ($([$language:ident, $parser:ident]),+) => {
         #[derive(Clone, Debug)]
         pub enum GritTargetLanguage {
             $($language($language)),+
@@ -32,15 +35,45 @@ macro_rules! generate_target_language {
                 }
             }
 
+            pub fn get_parser(&self) -> Box<dyn Parser<Tree = GritTargetTree>> {
+                match self {
+                    $(Self::$language(_) => Box::new($parser)),+
+                }
+            }
+
+            pub fn kind_by_name(&self, name: &str) -> Option<GritTargetSyntaxKind> {
+                match self {
+                    $(Self::$language(lang) => lang.kind_by_name(name).map(Into::into)),+
+                }
+            }
+
+            pub fn name_for_kind(&self, name: GritTargetSyntaxKind) -> &'static str {
+                match self {
+                    $(Self::$language(lang) => lang.name_for_kind(name)),+
+                }
+            }
+
+            pub fn named_slots_for_kind(&self, kind: GritTargetSyntaxKind) -> &'static [(&'static str, u32)] {
+                match self {
+                    $(Self::$language(lang) => lang.named_slots_for_kind(kind)),+
+                }
+            }
+
             fn is_alternative_metavariable_kind(&self, kind: GritTargetSyntaxKind) -> bool {
                 match self {
                     $(Self::$language(_) => $language::is_alternative_metavariable_kind(kind)),+
                 }
             }
+
+            pub fn is_comment_kind(&self, kind: GritTargetSyntaxKind) -> bool {
+                match self {
+                    $(Self::$language(_) => $language::is_comment_kind(kind)),+
+                }
+            }
         }
 
         impl Language for GritTargetLanguage {
-            type Node<'a> = GritTargetNode;
+            type Node<'a> = GritTargetNode<'a>;
 
             fn language_name(&self) -> &'static str {
                 match self {
@@ -63,14 +96,77 @@ macro_rules! generate_target_language {
             fn is_metavariable(&self, node: &GritTargetNode) -> bool {
                 node.kind() == self.metavariable_kind()
                     || (self.is_alternative_metavariable_kind(node.kind())
-                        && self.exact_replaced_variable_regex().is_match(&node.text_trimmed().to_string()))
+                        && self.exact_replaced_variable_regex().is_match(node.text()))
+            }
+
+            fn align_padding<'a>(
+                &self,
+                _node: &Self::Node<'a>,
+                _range: &CodeRange,
+                _skip_ranges: &[CodeRange],
+                _new_padding: Option<usize>,
+                _offset: usize,
+                _substitutions: &mut [(EffectRange, String)],
+            ) -> Cow<'a, str> {
+                todo!()
+            }
+
+            fn pad_snippet<'a>(&self, _snippet: &'a str, _padding: &str) -> Cow<'a, str> {
+                todo!()
+            }
+
+            fn get_skip_padding_ranges(&self, _node: &Self::Node<'_>) -> Vec<CodeRange> {
+                Vec::new()
             }
         }
-    };
+    }
 }
 
 generate_target_language! {
-    JsTargetLanguage
+    [JsTargetLanguage, GritJsParser]
+}
+
+impl GritTargetLanguage {
+    /// Returns `true` when the text `content` contains an identifier for a
+    /// metavariable using bracket syntax.
+    ///
+    /// The metavariable may occur anywhere inside `content`.
+    pub fn matches_bracket_metavariable(&self, content: &str) -> bool {
+        self.metavariable_bracket_regex().is_match(content)
+    }
+
+    /// Returns `true` when the text `content` is a metavariable identifier.
+    ///
+    /// No other text is allowed inside `content`.
+    pub fn matches_exact_metavariable(&self, content: &str) -> bool {
+        self.exact_variable_regex().is_match(content)
+    }
+
+    /// Returns `true` when the text `content` contains a metavariable
+    /// identifier with its prefix replaced with the
+    /// `[Self::metavariable_prefix_substitute()].
+    ///
+    /// The metavariable may occur anywhere inside `content`.
+    pub fn matches_replaced_metavariable(&self, content: &str) -> bool {
+        self.replaced_metavariable_regex().is_match(content)
+    }
+
+    pub fn parse_snippet_contexts(&self, source: &str) -> Vec<SnippetTree<GritTargetTree>> {
+        let source = self.substitute_metavariable_prefix(source);
+        self.snippet_context_strings()
+            .iter()
+            .map(|(pre, post)| self.get_parser().parse_snippet(pre, &source, post))
+            .filter(|result| {
+                result
+                    .tree
+                    .root_node()
+                    .descendants()
+                    .map_or(false, |mut descendants| {
+                        !descendants.any(|descendant| descendant.kind().is_bogus())
+                    })
+            })
+            .collect()
+    }
 }
 
 /// Trait to be implemented by the language-specific implementations.
@@ -81,6 +177,31 @@ trait GritTargetLanguageImpl {
     type Kind: SyntaxKind;
 
     fn language_name(&self) -> &'static str;
+
+    /// Returns the syntax kind for a node by name.
+    ///
+    /// This is the inverse of [Self::name_for_kind()].
+    ///
+    /// For compatibility with existing Grit snippets (as well as the online
+    /// Grit playground), node names should be aligned with TreeSitter's
+    /// `ts_language_symbol_for_name()`.
+    fn kind_by_name(&self, node_name: &str) -> Option<Self::Kind>;
+
+    /// Returns the node name for a given syntax kind.
+    ///
+    /// This is the inverse of [Self::kind_by_name()].
+    ///
+    /// For compatibility with existing Grit snippets (as well as the online
+    /// Grit playground), node names should be aligned with TreeSitter's
+    /// `ts_language_symbol_name()`.
+    fn name_for_kind(&self, kind: GritTargetSyntaxKind) -> &'static str;
+
+    /// Returns the slots with their names for the given node kind.
+    ///
+    /// For compatibility with existing Grit snippets (as well as the online
+    /// Grit playground), node names should be aligned with TreeSitter's
+    /// `ts_language_field_name_for_id()`.
+    fn named_slots_for_kind(&self, kind: GritTargetSyntaxKind) -> &'static [(&'static str, u32)];
 
     /// Strings that provide context for parsing snippets.
     ///
@@ -96,7 +217,15 @@ trait GritTargetLanguageImpl {
     fn snippet_context_strings(&self) -> &[(&'static str, &'static str)];
 
     /// Determines whether the given target node is a comment.
-    fn is_comment(&self, node: &GritTargetNode) -> bool;
+    ///
+    /// This is allowed to return `true` for nodes whose kind would not return
+    /// `true` when passed directly to [is_comment_kind()].
+    fn is_comment(&self, node: &GritTargetNode) -> bool {
+        Self::is_comment_kind(node.kind())
+    }
+
+    /// Determines whether the given kind is a comment kind.
+    fn is_comment_kind(kind: GritTargetSyntaxKind) -> bool;
 
     /// Returns the syntax kind for metavariables.
     fn metavariable_kind() -> Self::Kind;

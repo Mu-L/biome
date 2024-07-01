@@ -87,8 +87,7 @@ fn losslessness(string: String) -> bool {
         .recv_timeout(Duration::from_secs(2))
         .unwrap_or_else(|_| {
             panic!(
-                "Lexer is infinitely recursing with this code: ->{}<-",
-                string
+                "Lexer is infinitely recursing with this code: ->{string}<-"
             )
         });
 
@@ -219,11 +218,10 @@ fn string() {
         WHITESPACE:1,
     }
 
-    // invalid escape sequence
+    // unescaped backslash
     assert_lex! {
-        r#"""" \" \r \n \"" """ "#,
-        ERROR_TOKEN:20,
-        WHITESPACE:1,
+        r#"""" \" \r \n \"" """"#,
+        GRAPHQL_STRING_LITERAL:20,
     }
 
     // empty

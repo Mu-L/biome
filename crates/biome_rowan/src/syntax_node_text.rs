@@ -3,8 +3,8 @@ use crate::{
     TextRange, TextSize, TokenAtOffset,
 };
 use biome_text_size::TextLen;
-use std::fmt;
 use std::iter::FusedIterator;
+use std::{cmp::Ordering, fmt};
 
 #[derive(Clone)]
 pub struct SyntaxNodeText {
@@ -86,6 +86,29 @@ impl SyntaxNodeText {
             node: self.node.clone(),
             range,
         }
+    }
+
+    pub fn starts_with(&self, mut prefix: &str) -> bool {
+        for (token, range) in self.tokens_with_ranges() {
+            if prefix.is_empty() {
+                return true;
+            }
+
+            let text = &token.text()[range];
+            match text.len().cmp(&prefix.len()) {
+                Ordering::Equal => return text == prefix,
+                Ordering::Greater => return text.starts_with(prefix),
+                Ordering::Less => {
+                    if text == &prefix[..text.len()] {
+                        prefix = &prefix[text.len()..];
+                    } else {
+                        return false;
+                    }
+                }
+            }
+        }
+
+        prefix.is_empty()
     }
 
     pub fn try_fold_chunks<T, F, E>(&self, init: T, mut f: F) -> Result<T, E>
@@ -394,13 +417,9 @@ mod tests {
             let t2 = build_tree(t2).text();
             let expected = t1.to_string() == t2.to_string();
             let actual = t1 == t2;
-            assert_eq!(
-                expected, actual,
-                "`{}` (SyntaxText) `{}` (SyntaxText)",
-                t1, t2
-            );
+            assert_eq!(expected, actual, "`{t1}` (SyntaxText) `{t2}` (SyntaxText)");
             let actual = t1 == *t2.to_string();
-            assert_eq!(expected, actual, "`{}` (SyntaxText) `{}` (&str)", t1, t2);
+            assert_eq!(expected, actual, "`{t1}` (SyntaxText) `{t2}` (&str)");
         }
         fn check(t1: &[&str], t2: &[&str]) {
             do_check(t1, t2);
@@ -428,8 +447,7 @@ mod tests {
 
             assert_eq!(
                 expected, &actual,
-                "`{}` (SyntaxText) `{}` (SyntaxText)",
-                actual, expected
+                "`{actual}` (SyntaxText) `{expected}` (SyntaxText)"
             );
         }
 

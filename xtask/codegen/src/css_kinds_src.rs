@@ -43,6 +43,7 @@ pub const CSS_KINDS_SRC: KindsSrc = KindsSrc {
         ("~=", "TILDE_EQ"),
         ("-->", "CDC"),
         ("<!--", "CDO"),
+        ("U+", "UNICODE"),
     ],
     keywords: &[
         "media",
@@ -239,6 +240,7 @@ pub const CSS_KINDS_SRC: KindsSrc = KindsSrc {
         "regexp",
         "value",
         "as",
+        "composes",
         //
         "font-face",
         // Don't add to the end of this list, add new keywords above the "HERE"
@@ -259,6 +261,8 @@ pub const CSS_KINDS_SRC: KindsSrc = KindsSrc {
         // Similarly, `<percentage>` also disallows spaces, so this token
         // represents a number immediately preceding a `%`.
         "CSS_PERCENTAGE_VALUE",
+        "CSS_UNICODE_CODEPOINT_LITERAL",
+        "CSS_UNICODE_RANGE_WILDCARD_LITERAL",
     ],
     tokens: &[
         "ERROR_TOKEN",
@@ -298,6 +302,10 @@ pub const CSS_KINDS_SRC: KindsSrc = KindsSrc {
         "CSS_GENERIC_COMPONENT_VALUE_LIST",
         "CSS_GENERIC_DELIMITER",
         "CSS_GENERIC_PROPERTY",
+        "CSS_COMPOSES_PROPERTY",
+        "CSS_COMPOSES_PROPERTY_VALUE",
+        "CSS_COMPOSES_IMPORT_SPECIFIER",
+        "CSS_COMPOSES_CLASS_LIST",
         "CSS_UNKNOWN_PROPERTY_VALUE",
         // Properties
         "CSS_PARAMETER_LIST",
@@ -355,6 +363,12 @@ pub const CSS_KINDS_SRC: KindsSrc = KindsSrc {
         "CSS_URL_MODIFIER_LIST",
         "CSS_COLOR",
         "CSS_BORDER",
+        "CSS_BRACKETED_VALUE",
+        "CSS_BRACKETED_VALUE_LIST",
+        "CSS_UNICODE_RANGE",
+        "CSS_UNICODE_CODEPOINT",
+        "CSS_UNICODE_RANGE_WILDCARD",
+        "CSS_UNICODE_RANGE_INTERVAL",
         // At rule nodes
         "CSS_AT_RULE",
         "CSS_CHARSET_AT_RULE",
@@ -460,6 +474,9 @@ pub const CSS_KINDS_SRC: KindsSrc = KindsSrc {
         "CSS_VALUE_AT_RULE_DECLARATION_CLAUSE",
         "CSS_VALUE_AT_RULE_GENERIC_PROPERTY",
         "CSS_VALUE_AT_RULE_GENERIC_VALUE",
+        "CSS_UNKNOWN_BLOCK_AT_RULE",
+        "CSS_UNKNOWN_VALUE_AT_RULE",
+        "CSS_UNKNOWN_AT_RULE_COMPONENT_LIST",
         // Bogus nodes
         "CSS_BOGUS",
         "CSS_BOGUS_BLOCK",
@@ -485,5 +502,6 @@ pub const CSS_KINDS_SRC: KindsSrc = KindsSrc {
         "CSS_BOGUS_FONT_FAMILY_NAME",
         "CSS_BOGUS_CUSTOM_IDENTIFIER",
         "CSS_BOGUS_KEYFRAMES_NAME",
+        "CSS_BOGUS_UNICODE_RANGE_VALUE",
     ],
 };

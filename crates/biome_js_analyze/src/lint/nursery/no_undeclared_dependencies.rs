@@ -1,7 +1,7 @@
 use crate::services::manifest::Manifest;
 use biome_analyze::{context::RuleContext, declare_rule, Rule, RuleDiagnostic};
 use biome_console::markup;
-use biome_js_syntax::AnyJsImportSpecifierLike;
+use biome_js_syntax::AnyJsImportLike;
 use biome_rowan::AstNode;
 
 declare_rule! {
@@ -11,6 +11,9 @@ declare_rule! {
     /// `import "lodash"` somewhere in your project, the rule will trigger a diagnostic for this import.
     ///
     /// The rule ignores imports using a protocol such as `node:`, `bun:`, `jsr:`, `https:`.
+    ///
+    /// To ensure that Visual Studio Code uses relative imports when it automatically imports a variable,
+    /// you may set [`javascript.preferences.importModuleSpecifier` and `typescript.preferences.importModuleSpecifier`](https://code.visualstudio.com/docs/getstarted/settings) to `relative`.
     ///
     /// ## Examples
     ///
@@ -38,7 +41,7 @@ declare_rule! {
 }
 
 impl Rule for NoUndeclaredDependencies {
-    type Query = Manifest<AnyJsImportSpecifierLike>;
+    type Query = Manifest<AnyJsImportLike>;
     type State = ();
     type Signals = Option<Self::State>;
     type Options = ();

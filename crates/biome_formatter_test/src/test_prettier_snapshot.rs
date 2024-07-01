@@ -34,7 +34,7 @@ impl<'a> PrettierTestFile<'a> {
         );
 
         let mut input_code = read_to_string(input_file)
-            .unwrap_or_else(|err| panic!("failed to read {:?}: {:?}", input_file, err));
+            .unwrap_or_else(|err| panic!("failed to read {input_file:?}: {err:?}"));
 
         let (_, range_start_index, range_end_index) = strip_prettier_placeholders(&mut input_code);
         let parse_input = input_code.replace(PRETTIER_IGNORE, BIOME_IGNORE);
@@ -203,7 +203,7 @@ where
             .with_output(SnapshotOutput::new(&formatted))
             .with_errors(&parsed, &self.test_file().parse_input);
 
-        let max_width = self.options.line_width().get() as usize;
+        let max_width = self.options.line_width().value() as usize;
         builder = builder.with_lines_exceeding_max_width(&formatted, max_width);
 
         builder.finish(relative_file_name);

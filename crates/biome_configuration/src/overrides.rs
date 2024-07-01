@@ -1,13 +1,13 @@
 use super::javascript::PartialJavascriptConfiguration;
 use super::json::PartialJsonConfiguration;
-use super::PartialCssConfiguration;
+use super::{PartialCssConfiguration, PartialGraphqlConfiguration};
 use crate::{
-    partial_css_configuration, partial_javascript_configuration, partial_json_configuration,
-    PlainIndentStyle, Rules,
+    partial_css_configuration, partial_graphql_configuration, partial_javascript_configuration,
+    partial_json_configuration, PlainIndentStyle, Rules,
 };
 use biome_deserialize::StringSet;
 use biome_deserialize_macros::{Deserializable, Merge};
-use biome_formatter::{AttributePosition, LineEnding, LineWidth};
+use biome_formatter::{AttributePosition, BracketSpacing, IndentWidth, LineEnding, LineWidth};
 use bpaf::Bpaf;
 use serde::{Deserialize, Serialize};
 use std::str::FromStr;
@@ -60,6 +60,11 @@ pub struct OverridePattern {
     #[bpaf(external(partial_css_configuration), optional, hide)]
     pub css: Option<PartialCssConfiguration>,
 
+    /// Specific configuration for the Graphql language
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[bpaf(external(partial_graphql_configuration), optional, hide)]
+    pub graphql: Option<PartialGraphqlConfiguration>,
+
     /// Specific configuration for the Json language
     #[serde(skip_serializing_if = "Option::is_none")]
     #[bpaf(external(override_formatter_configuration), optional, hide)]
@@ -110,12 +115,12 @@ pub struct OverrideFormatterConfiguration {
     #[serde(skip_serializing_if = "Option::is_none")]
     #[deserializable(deprecated(use_instead = "formatter.indentWidth"))]
     #[bpaf(long("indent-size"), argument("NUMBER"), optional)]
-    pub indent_size: Option<u8>,
+    pub indent_size: Option<IndentWidth>,
 
     /// The size of the indentation, 2 by default
     #[serde(skip_serializing_if = "Option::is_none")]
     #[bpaf(long("indent-width"), argument("NUMBER"), optional)]
-    pub indent_width: Option<u8>,
+    pub indent_width: Option<IndentWidth>,
 
     /// The type of line ending.
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -131,6 +136,11 @@ pub struct OverrideFormatterConfiguration {
     #[serde(skip_serializing_if = "Option::is_none")]
     #[bpaf(long("attribute-position"), argument("multiline|auto"), optional)]
     pub attribute_position: Option<AttributePosition>,
+
+    /// Whether to insert spaces around brackets in object literals. Defaults to true.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[bpaf(long("bracket-spacing"), argument("true|false"), optional)]
+    pub bracket_spacing: Option<BracketSpacing>,
 }
 
 #[derive(

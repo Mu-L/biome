@@ -1,5 +1,5 @@
 use std::path::Path;
-use std::{io, iter};
+use std::{env, io, iter};
 
 use biome_console::{fmt, markup, HorizontalLine, Markup, MarkupBuf, MarkupElement, MarkupNode};
 use biome_text_edit::TextEdit;
@@ -10,7 +10,7 @@ mod diff;
 pub(super) mod frame;
 mod message;
 
-use crate::display::frame::SourceFile;
+pub use crate::display::frame::{SourceFile, SourceLocation};
 use crate::{
     diagnostic::internal::AsDiagnostic, Advices, Diagnostic, DiagnosticTags, Location, LogCategory,
     Resource, Severity, Visit,
@@ -37,6 +37,7 @@ impl<D: AsDiagnostic + ?Sized> std::fmt::Display for PrintDescription<'_, D> {
 pub struct PrintDiagnostic<'fmt, D: ?Sized> {
     diag: &'fmt D,
     verbose: bool,
+    search: bool,
 }
 
 impl<'fmt, D: AsDiagnostic + ?Sized> PrintDiagnostic<'fmt, D> {
@@ -44,6 +45,7 @@ impl<'fmt, D: AsDiagnostic + ?Sized> PrintDiagnostic<'fmt, D> {
         Self {
             diag,
             verbose: false,
+            search: false,
         }
     }
 
@@ -51,6 +53,15 @@ impl<'fmt, D: AsDiagnostic + ?Sized> PrintDiagnostic<'fmt, D> {
         Self {
             diag,
             verbose: true,
+            search: false,
+        }
+    }
+
+    pub fn search(diag: &'fmt D) -> Self {
+        Self {
+            diag,
+            verbose: false,
+            search: true,
         }
     }
 }
@@ -67,14 +78,19 @@ impl<D: AsDiagnostic + ?Sized> fmt::Display for PrintDiagnostic<'_, D> {
         // Wrap the formatter with an indentation level and print the advices
         let mut slot = None;
         let mut fmt = IndentWriter::wrap(fmt, &mut slot, true, "  ");
-        let mut visitor = PrintAdvices(&mut fmt);
 
-        print_advices(&mut visitor, diagnostic, self.verbose)
+        if self.search {
+            let mut visitor = PrintSearch(&mut fmt);
+            print_advices(&mut visitor, diagnostic, self.verbose)
+        } else {
+            let mut visitor = PrintAdvices(&mut fmt);
+            print_advices(&mut visitor, diagnostic, self.verbose)
+        }
     }
 }
 
 /// Display struct implementing the formatting of a diagnostic header.
-struct PrintHeader<'fmt, D: ?Sized>(&'fmt D);
+pub(crate) struct PrintHeader<'fmt, D: ?Sized>(pub(crate) &'fmt D);
 
 impl<D: Diagnostic + ?Sized> fmt::Display for PrintHeader<'_, D> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> io::Result<()> {
@@ -91,15 +107,21 @@ impl<D: Diagnostic + ?Sized> fmt::Display for PrintHeader<'_, D> {
             _ => None,
         };
 
+        let is_vscode = env::var("TERM_PROGRAM").unwrap_or_default() == "vscode";
+
         if let Some(name) = file_name {
-            let path_name = Path::new(name);
-            if path_name.is_absolute() {
-                let link = format!("file://{}", name);
-                fmt.write_markup(markup! {
-                    <Hyperlink href={link}>{name}</Hyperlink>
-                })?;
-            } else {
+            if is_vscode {
                 fmt.write_str(name)?;
+            } else {
+                let path_name = Path::new(name);
+                if path_name.is_absolute() {
+                    let link = format!("file://{name}");
+                    fmt.write_markup(markup! {
+                        <Hyperlink href={link}>{name}</Hyperlink>
+                    })?;
+                } else {
+                    fmt.write_str(name)?;
+                }
             }
 
             // Print the line and column position if the location has a span and source code
@@ -338,6 +360,14 @@ impl<D: Diagnostic + ?Sized> fmt::Display for PrintCauseChain<'_, D> {
         }
 
         Ok(())
+    }
+}
+
+struct PrintSearch<'a, 'b>(&'a mut fmt::Formatter<'b>);
+
+impl Visit for PrintSearch<'_, '_> {
+    fn record_frame(&mut self, location: Location<'_>) -> io::Result<()> {
+        frame::print_highlighted_frame(self.0, location)
     }
 }
 

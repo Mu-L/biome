@@ -11,6 +11,7 @@ pub fn generate_analyzer() -> Result<()> {
     generate_js_analyzer()?;
     generate_json_analyzer()?;
     generate_css_analyzer()?;
+    generate_graphql_analyzer()?;
     Ok(())
 }
 
@@ -35,8 +36,11 @@ fn generate_json_analyzer() -> Result<()> {
     let mut analyzers = BTreeMap::new();
     generate_category("lint", &mut analyzers, &base_path)?;
 
+    let mut assists = BTreeMap::new();
+    generate_category("assists", &mut assists, &base_path)?;
+
     generate_options(&base_path)?;
-    update_json_registry_builder(analyzers)
+    update_json_registry_builder(analyzers, assists)
 }
 
 fn generate_css_analyzer() -> Result<()> {
@@ -45,6 +49,14 @@ fn generate_css_analyzer() -> Result<()> {
     generate_category("lint", &mut analyzers, &base_path)?;
     generate_options(&base_path)?;
     update_css_registry_builder(analyzers)
+}
+
+fn generate_graphql_analyzer() -> Result<()> {
+    let base_path = project_root().join("crates/biome_graphql_analyze/src");
+    let mut analyzers = BTreeMap::new();
+    generate_category("lint", &mut analyzers, &base_path)?;
+    generate_options(&base_path)?;
+    update_graphql_registry_builder(analyzers)
 }
 
 fn generate_options(base_path: &Path) -> Result<()> {
@@ -189,12 +201,28 @@ fn generate_group(category: &'static str, group: &str, base_path: &Path) -> Resu
     let nl = Punct::new('\n', Spacing::Alone);
     let sp = Punct::new(' ', Spacing::Joint);
     let sp4 = quote! { #sp #sp #sp #sp };
+    let (import_macro, use_macro) = match category {
+        "lint" | "syntax" => (
+            quote!(
+                use biome_analyze::declare_lint_group
+            ),
+            quote!(declare_lint_group),
+        ),
+        "assists" => (
+            quote!(
+                use biome_analyze::declare_assists_group
+            ),
+            quote!(declare_assists_group),
+        ),
+
+        _ => panic!("Category not supported: {category}"),
+    };
     let tokens = xtask::reformat(quote! {
-        use biome_analyze::declare_group;
+        #import_macro;
         #nl #nl
         #( #rule_imports )*
         #nl #nl
-        declare_group! { #nl
+        #use_macro! { #nl
             #sp4 pub #group_name { #nl
                 #sp4 #sp4 name: #group, #nl
                 #sp4 #sp4 rules: [ #nl
@@ -236,10 +264,16 @@ fn update_js_registry_builder(
     Ok(())
 }
 
-fn update_json_registry_builder(analyzers: BTreeMap<&'static str, TokenStream>) -> Result<()> {
+fn update_json_registry_builder(
+    analyzers: BTreeMap<&'static str, TokenStream>,
+    assists: BTreeMap<&'static str, TokenStream>,
+) -> Result<()> {
     let path = project_root().join("crates/biome_json_analyze/src/registry.rs");
 
-    let categories = analyzers.into_values();
+    let categories = analyzers
+        .into_iter()
+        .chain(assists)
+        .map(|(_, tokens)| tokens);
 
     let tokens = xtask::reformat(quote! {
         use biome_analyze::RegistryVisitor;
@@ -265,6 +299,25 @@ fn update_css_registry_builder(analyzers: BTreeMap<&'static str, TokenStream>) -
         use biome_css_syntax::CssLanguage;
 
         pub fn visit_registry<V: RegistryVisitor<CssLanguage>>(registry: &mut V) {
+            #( #categories )*
+        }
+    })?;
+
+    fs2::write(path, tokens)?;
+
+    Ok(())
+}
+
+fn update_graphql_registry_builder(analyzers: BTreeMap<&'static str, TokenStream>) -> Result<()> {
+    let path = project_root().join("crates/biome_graphql_analyze/src/registry.rs");
+
+    let categories = analyzers.into_values();
+
+    let tokens = xtask::reformat(quote! {
+        use biome_analyze::RegistryVisitor;
+        use biome_graphql_syntax::GraphqlLanguage;
+
+        pub fn visit_registry<V: RegistryVisitor<GraphqlLanguage>>(registry: &mut V) {
             #( #categories )*
         }
     })?;

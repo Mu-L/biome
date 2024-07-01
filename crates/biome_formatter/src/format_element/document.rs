@@ -2,7 +2,7 @@ use super::tag::Tag;
 use crate::format_element::tag::DedentMode;
 use crate::prelude::tag::GroupMode;
 use crate::prelude::*;
-use crate::{format, write, AttributePosition};
+use crate::{format, write, AttributePosition, BracketSpacing};
 use crate::{
     BufferExtensions, Format, FormatContext, FormatElement, FormatOptions, FormatResult, Formatter,
     IndentStyle, IndentWidth, LineEnding, LineWidth, PrinterOptions, TransformSourceMap,
@@ -203,6 +203,10 @@ impl FormatOptions for IrFormatOptions {
         AttributePosition::default()
     }
 
+    fn bracket_spacing(&self) -> BracketSpacing {
+        BracketSpacing::default()
+    }
+
     fn as_print_options(&self) -> PrinterOptions {
         PrinterOptions {
             indent_width: self.indent_width(),
@@ -210,6 +214,7 @@ impl FormatOptions for IrFormatOptions {
             line_ending: LineEnding::Lf,
             indent_style: IndentStyle::Space,
             attribute_position: self.attribute_position(),
+            bracket_spacing: self.bracket_spacing(),
         }
     }
 }
@@ -250,7 +255,35 @@ impl Format<IrFormatContext> for &[FormatElement] {
                         FormatElement::Space | FormatElement::HardSpace => {
                             write!(f, [text(" ")])?;
                         }
-                        element if element.is_text() => f.write_element(element.clone())?,
+                        element if element.is_text() => {
+                            // escape quotes
+                            let new_element = match element {
+                                // except for static text because source_position is unknown
+                                FormatElement::StaticText { .. } => element.clone(),
+                                FormatElement::DynamicText {
+                                    text,
+                                    source_position,
+                                } => {
+                                    let text = text.to_string().replace('"', "\\\"");
+                                    FormatElement::DynamicText {
+                                        text: text.into(),
+                                        source_position: *source_position,
+                                    }
+                                }
+                                FormatElement::LocatedTokenText {
+                                    slice,
+                                    source_position,
+                                } => {
+                                    let text = slice.to_string().replace('"', "\\\"");
+                                    FormatElement::DynamicText {
+                                        text: text.into(),
+                                        source_position: *source_position,
+                                    }
+                                }
+                                _ => unreachable!(),
+                            };
+                            f.write_element(new_element)?;
+                        }
                         _ => unreachable!(),
                     }
 
@@ -710,6 +743,10 @@ impl FormatElements for [FormatElement] {
 
 #[cfg(test)]
 mod tests {
+    use biome_js_syntax::JsSyntaxKind;
+    use biome_js_syntax::JsSyntaxToken;
+    use biome_rowan::TextSize;
+
     use crate::prelude::*;
     use crate::SimpleFormatContext;
     use crate::{format, format_args, write};
@@ -836,5 +873,25 @@ mod tests {
   group(expand: propagated, [<ref interned *0>])
 ]"#
         );
+    }
+
+    #[test]
+    fn escapes_quotes() {
+        let token = JsSyntaxToken::new_detached(JsSyntaxKind::JS_STRING_LITERAL, "\"bar\"", [], []);
+        let token_text = FormatElement::LocatedTokenText {
+            source_position: TextSize::default(),
+            slice: token.token_text(),
+        };
+
+        let mut document = Document::from(vec![
+            FormatElement::DynamicText {
+                text: "\"foo\"".into(),
+                source_position: TextSize::default(),
+            },
+            token_text,
+        ]);
+        document.propagate_expand();
+
+        assert_eq!(&std::format!("{document}"), r#"["\"foo\"\"bar\""]"#);
     }
 }

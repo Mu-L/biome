@@ -138,6 +138,28 @@ declare_rule! {
     /// }
     /// ```
     ///
+    /// ## Ignoring a specific dependency
+    ///
+    /// Sometimes you may wish to ignore a diagnostic about a specific
+    /// dependency without disabling *all* linting for that hook. To do so,
+    /// you may specify the name of a specific dependency between parentheses,
+    /// like this:
+    ///
+    /// ```js
+    /// import { useEffect } from "react";
+    ///
+    /// function component() {
+    ///     let a = 1;
+    ///     // biome-ignore lint/correctness/useExhaustiveDependencies(a): <explanation>
+    ///     useEffect(() => {
+    ///         console.log(a);
+    ///     }, []);
+    /// }
+    /// ```
+    ///
+    /// If you wish to ignore multiple dependencies, you can add multiple
+    /// comments and add a reason for each.
+    ///
     /// ## Options
     ///
     /// Allows to specify custom hooks - from libraries or internal projects -
@@ -445,6 +467,8 @@ fn capture_needs_to_be_in_the_dependency_list(
     match decl.parent_binding_pattern_declaration().unwrap_or(decl) {
         // These declarations are always stable
         AnyJsBindingDeclaration::JsClassDeclaration(_)
+        | AnyJsBindingDeclaration::JsClassExportDefaultDeclaration(_)
+        | AnyJsBindingDeclaration::JsFunctionExportDefaultDeclaration(_)
         | AnyJsBindingDeclaration::TsEnumDeclaration(_)
         | AnyJsBindingDeclaration::TsTypeAliasDeclaration(_)
         | AnyJsBindingDeclaration::TsInterfaceDeclaration(_)
@@ -452,14 +476,34 @@ fn capture_needs_to_be_in_the_dependency_list(
         | AnyJsBindingDeclaration::TsInferType(_)
         | AnyJsBindingDeclaration::TsMappedType(_)
         | AnyJsBindingDeclaration::TsTypeParameter(_) => false,
-        // Function declarations are unstable if ...
+        // Function declarations are stable if ...
         AnyJsBindingDeclaration::JsFunctionDeclaration(declaration) => {
             let declaration_range = declaration.syntax().text_range();
 
-            // ... they are declared inside the component function
-            component_function_range
+            // ... they are declared outside of the component function
+            if component_function_range
                 .intersect(declaration_range)
-                .map_or(false, |range| !range.is_empty())
+                .map_or(true, TextRange::is_empty)
+            {
+                return false;
+            }
+
+            // ... they are recursively used by the binding being created:
+            //
+            // function MyRecursiveElement() {
+            // 	 const children = useMemo(() => <MyRecursiveElement />, []);
+            // 	 return <div>{children}</div>;
+            // }
+            //
+            if capture
+                .node()
+                .ancestors()
+                .any(|ancestor| &ancestor == declaration.syntax())
+            {
+                return false;
+            }
+
+            true
         }
         // Variable declarators are stable if ...
         AnyJsBindingDeclaration::JsVariableDeclarator(declarator) => {
@@ -514,8 +558,6 @@ fn capture_needs_to_be_in_the_dependency_list(
         | AnyJsBindingDeclaration::JsFunctionExpression(_)
         | AnyJsBindingDeclaration::TsDeclareFunctionDeclaration(_)
         | AnyJsBindingDeclaration::JsClassExpression(_)
-        | AnyJsBindingDeclaration::JsClassExportDefaultDeclaration(_)
-        | AnyJsBindingDeclaration::JsFunctionExportDefaultDeclaration(_)
         | AnyJsBindingDeclaration::TsDeclareFunctionExportDefaultDeclaration(_)
         | AnyJsBindingDeclaration::JsCatchDeclaration(_) => true,
 
@@ -782,6 +824,23 @@ impl Rule for UseExhaustiveDependencies {
                     })
                 });
 
+            // Find duplicated deps from specified ones
+            {
+                let mut dep_list: BTreeMap<String, AnyJsExpression> = BTreeMap::new();
+                for dep in correct_deps.iter() {
+                    let expression_name = dep.to_string();
+                    if dep_list.contains_key(&expression_name) {
+                        signals.push(Fix::RemoveDependency {
+                            function_name_range: result.function_name_range,
+                            component_function: component_function.clone(),
+                            dependencies: vec![dep.clone()],
+                        });
+                        continue;
+                    }
+                    dep_list.insert(expression_name, dep.clone());
+                }
+            }
+
             // Find correctly specified dependencies with an unstable identity,
             // since they would trigger re-evaluation on every render.
             let unstable_deps = correct_deps.into_iter().filter_map(|dep| {
@@ -815,6 +874,22 @@ impl Rule for UseExhaustiveDependencies {
         }
 
         signals
+    }
+
+    fn instances_for_signal(signal: &Self::State) -> Vec<String> {
+        match signal {
+            Fix::AddDependency { captures, .. } => vec![captures.0.clone()],
+            Fix::RemoveDependency { dependencies, .. } => dependencies
+                .iter()
+                .map(|dep| dep.syntax().text_trimmed().to_string())
+                .collect(),
+            Fix::DependencyTooUnstable {
+                dependency_name, ..
+            } => vec![dependency_name.clone()],
+            Fix::DependencyTooDeep {
+                dependency_text, ..
+            } => vec![dependency_text.clone()],
+        }
     }
 
     fn diagnostic(ctx: &RuleContext<Self>, dep: &Self::State) -> Option<RuleDiagnostic> {
